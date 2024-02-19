@@ -1,0 +1,551 @@
+Function Documentation for ExperimentLCMS function as part of the Symbolic Lab Language (SLL)
+ExperimentLCMS[Samples]⟹Protocol
+
+Generates a Protocol to separate and analyze Samples via Liquid Chromatography Mass Spectrometry (LCMS).
+    
+Liquid chromatography - Mass Spectrometry (LC-MS) separates samples injected into a liquid flow by passage through an adsorbent column (see ExperimentHPLC). After separation, analytes are ionized, selected, and detected in the Mass Spectrometer device (see ExperimentMassSpectrometry). Within, ions are resolved by their mass versus charge state. Optionally, ions can be fragmented by collision with an inert gas, and the resulting product ions can, in turn, be resolved and detected for more information. In total, LC-MS can answer composition questions; for example, proteins, lipids, and metabolites can be identified in a sample. Furthermore, LC-MS can answer concentration questions; for instance, nucleotides can be quantified in a biological sample.
+
+
+Preferred Input Containers
+
+    1. 2mL deep well plates:
+    Model[Container, Plate, "96-well 2mL Deep Well Plate"]
+
+    2. High recovery HPLC Vial
+    Model[Container, Vessel, "HPLC High-Recovery Vial"]
+
+Example Function Calls
+
+    Basics
+
+        High performance liquid chromatography (HPLC) separates sample mixtures into analyzable molecular constituents by injection into flowing liquid that passes through a retentive column:
+        ExperimentLCMS[mySamples]
+
+    MassAnalyzer
+        Use the MassAnalyzer option to select TripleQuadruploe as the mass analyzer
+        ExperimentLCMS[mySamples,
+            MassAnalyzer -> TripleQuadruploe,
+            ConeGasFlow -> (90 * PSI)
+        ]
+
+    Separation Mode and Gradient
+        More specific buffers and gradient profiles can also be articulated. For example:
+
+        ExperimentLCMS[mySamples,
+            BufferB -> Model[Sample, "Methanol - LCMS grade"],
+            GradientB -> {
+                {0 * Minute, 5 * Percent},
+                {20 * Minute, 40 * Percent}
+            }
+        ]
+        A full gradient table can be specified:
+        ExperimentLCMS[mySamples,
+            Gradient -> {
+                {0 * Minute, 95 * Percent, 5 * Percent, 0 * Percent, 
+            0 * Percent, (1 * Milliliter) / Minute},
+                {15 * Minute, 50 * Percent, 50 * Percent, 0 * Percent, 
+            0 * Percent, (1 * Milliliter) / Minute},
+                {30 * Minute, 5 * Percent, 95 * Percent, 0 * Percent, 
+            0 * Percent, (1 * Milliliter) / Minute}
+            }
+        ]
+
+    Ionization
+        The polarity of the ions analyzed can be set along with the desired reference solution for the sample masses:
+        ExperimentLCMS[mySamples,
+            IonMode -> Positive,
+            Calibrant -> 
+        Model[Sample, StockSolution, Standard, "Cesium Iodide ESI Calibrant"]
+        ]
+
+        Specific settings for electrospray ionization source can be controlled in order to maximize ionization capability:
+        ExperimentLCMS[mySamples,
+            ESICapillaryVoltage -> (1 * Kilovolt),
+            ConeGasFlow -> ((300 * Liter) / Hour)
+        ]
+
+    Acquisition Windows and Modes
+        Different acquisition modes can be specified within different time periods for the same chromatogram. Here, for all of the samples, during the time period from 2 minutes to 5 minutes, an MS1FullScan acquisition is employed (no fragmentation; measure intact ions). From 7 minutes to 9, a data dependent acquisition is performed (see the appropriate section above):
+        ExperimentLCMS[mySamples,
+            AcquisitionWindow -> {
+                Span[2 * Minute, 5 * Minute],
+                Span[7 * Minute, 9 * Minute]
+            },
+            AcquisitionMode -> {MS1FullScan, DataDependent}
+        ]
+
+        Similarly, different fragmentation instructions can be specified for different time periods:
+        ExperimentLCMS[mySamples,
+            AcquisitionWindow -> {
+                Span[2 * Minute, 5 * Minute],
+                Span[7 * Minute, 9 * Minute]
+            },
+            Fragment -> {True, False},
+            MassDetection -> {(650 * Gram) / Mole, Protein},
+            FragmentMassDetection -> {
+                Span[(300 * Gram) / Mole, (1000 * Gram) / Mole],
+                Null
+            }
+        ]
+
+    Multiple Reaction Monitoring
+        Specified MassAnalyzer, AcquisitionMode, MassSelection and FragmentMassSelection to conduct multiple reaction monitoring analysis by using QTRAP 6500:
+
+        ExperimentLCMS[mySamples,
+            AcquisitionWindow -> {
+                {
+                        Span[2 * Minute, 5 * Minute],
+                        Span[7 * Minute, 9 * Minute]
+                    }
+            },
+            AcquisitionMode -> {{MS1FullScan, MultipleReactionMonitoring}},
+            MassAnalyzer -> TripleQuadrupole,
+            MassDetection -> {
+                {
+                        Span[Quantity[5, "Grams" / "Moles"],
+                            Quantity[1250, "Grams" / "Moles"]
+                        ]
+                    },
+                {
+                        {
+                            (609.3 * Gram) / Mole,
+                            (609.3 * Gram) / Mole,
+                            (609.3 * Gram) / Mole,
+                            (609.3 * Gram) / Mole
+                        }
+                    }
+            },
+            FragmentMassDetection -> {
+                {Null},
+                {
+                        {
+                            (174.1 * Gram) / Mole,
+                            (195. * Gram) / Mole,
+                            (397.1 * Gram) / Mole,
+                            (448.2 * Gram) / Mole
+                        }
+                    }
+            }
+        ]
+
+        Specified MassAnalyzer, AcquisitionMode and MultipleReactionMonitoringAssays to conduct multiple reaction monitoring analysis by using QTRAP 6500:
+
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> {{MultipleReactionMonitoring}},
+            MassAnalyzer -> TripleQuadrupole,
+            MultipleReactionMonitoringAssays -> {
+                {
+                        {
+                            Quantity[356, "Grams" / "Moles"],
+                            Quantity[30, "Volts"],
+                            Quantity[234, "Grams" / "Moles"],
+                            Quantity[4, "Seconds"]
+                        },
+                        {
+                            Quantity[456, "Grams" / "Moles"],
+                            Quantity[40, "Volts"],
+                            Quantity[345, "Grams" / "Moles"],
+                            Quantity[2, "Seconds"]
+                        },
+                        {
+                            Quantity[453, "Grams" / "Moles"],
+                            Quantity[65, "Volts"],
+                            Quantity[345, "Grams" / "Moles"],
+                            Quantity[3, "Seconds"]
+                        },
+                        {
+                            Quantity[764, "Grams" / "Moles"],
+                            Quantity[30, "Volts"],
+                            Quantity[345, "Grams" / "Moles"],
+                            Quantity[2, "Seconds"]
+                        }
+                    }
+            }
+        ]
+
+    Data Dependent Acquisition
+        In data dependent acquisition, the measurement is split into cycles (see the figure above). In the first part of the cycle, the intact ions (no fragmentations) are surveyed and considered for fragmentation analysis:
+
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> DataDependent,
+            AcquisitionSurvey -> 20
+        ]
+        A threshold can be specified on whether to consider an intact ion for fragmentation analysis. Likewise, a limit can be placed so that a highly abundant ion is not overly analyzed:
+
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> DataDependent,
+            MinimumThreshold -> (100000 * ArbitraryUnit),
+            AcquisitionLimit -> (2000000 * ArbitraryUnit)
+        ]
+
+        Various m/z can be excluded from the acquisition program:
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> DataDependent,
+            ExclusionMass -> {
+                {All, (656 * Gram) / Mole},
+                {All, (657 * Gram) / Mole}
+            }
+        ]
+
+        Masses can be prioritized for fragmentation as they surface during the surveys:
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> DataDependent,
+            InclusionMass -> {
+                {Preferential, (987 * Gram) / Mole},
+                {Preferential, (1013 * Gram) / Mole}
+            }
+        ]
+
+        Masses can be prioritized for fragmentation as they surface during the surveys:
+
+        ExperimentLCMS[mySamples,
+            AcquisitionMode -> DataDependent,
+            InclusionMass -> {
+                {Preferential, (987 * Gram) / Mole},
+                {Preferential, (1013 * Gram) / Mole}
+            }
+        ]
+
+        Redundant isotopes can excluded from acquisition surveys:
+        ExperimentLCMS[mySamples, SurveyIsotopeExclusion -> True]
+
+        Redundant charge states can excluded from acquisition surveys:
+        ExperimentLCMS[mySamples, SurveyChargeStateExclusion -> True]
+
+    Standards and Blanks
+        ExperimentLCMS can be used to quantify analytes in a sample, in which case, a Standard sample is employed to serve as reference. A standard can be submitted before and after the injection sequence of the samples simply by running:
+        ExperimentLCMS[mySamples, StandardFrequency -> FirstAndLast]
+
+        Likewise, a Blank sample can be used to see if there is any background from the injection process. To run a blank to occur between every 5 samples, use the following command:
+        ExperimentLCMS[mySamples, BlankFrequency -> 5]
+
+    PhotoDiodeArray detection
+        PhotoDiodeArray detection involves passes light across a range of wavelengths and measures how much light is absorbed for each even wavelength:
+        ExperimentLCMS[mySamples,
+            AbsorbanceWavelength -> Span[400, 500 * Nanometer],
+            UVFilter -> True
+        ]
+
+    Injection Table
+        In addition to specifying frequencies of running standards and blanks, now the injection sequence of samples, standards, blanks, and column primes/flushes can be explicitly articulated as well. In this case, an additional column flush is specified after the injection of the second sample:
+        customInjectionTable = customInjectionTable = {
+                {ColumnPrime, Null, Null, myGradientMethod1, 
+            myMassAcquisitionMethod1},
+                {Sample, mySample1, 2 * Microliter, myGradientMethod2, 
+            myMassAcquisitionMethod2},
+                {Blank, myBlank1, 5 * Microliter, myGradientMethod2, 
+            myMassAcquisitionMethod2},
+                {Sample, mySample2, 3 * Microliter, myGradientMethod2, 
+            myMassAcquisitionMethod2},
+                {ColumnFlush, Null, Null, myGradientMethod1, 
+            myMassAcquisitionMethod1},
+                {Standard, myStandard1, 2 * Microliter, myGradientMethod2, 
+            myMassAcquisitionMethod2},
+                {Sample, mySample3, 5 * Microliter, myGradientMethod2, 
+            myMassAcquisitionMethod2},
+                {ColumnFlush, Null, Null, myGradientMethod1, 
+            myMassAcquisitionMethod1}
+            };
+        ExperimentLCMS[{mySample1, mySample2, mySample3},
+            InjectionTable -> customInjectionTable
+        ]
+
+The ExperimentLCMS invocation can be extensively parameterized through the use of options:
+
+Experiment Options:
+
+General
+    SeparationMode
+        The category of method used to elicit differential column retention. This option is used to resolve the column, buffers, temperature, and pressure limits.
+        Default Value: ReversePhase
+        Pattern Description: NormalPhase, ReversePhase, IonExchange, SizeExclusion, Affinity, or Chiral.
+        Programmatic Pattern: SeparationModeP
+
+    MassAnalyzer
+        The manner of detection used to resolve and detect molecules. QTOF accelerates ions through an elongated flight tube and separates ions by their flight time (related to mass to charge ratio).
+        Default Value: Automatic
+        Default Calculation: Is automatically set to the QTOF.
+        Pattern Description: QTOF or TripleQuadrupole.
+        Programmatic Pattern: (QTOF | TripleQuadrupole) | Automatic
+
+    ChromatographyInstrument
+        The device used to separate molecules from the sample mixture using mobile liquid through an adsorbent column.
+        Default Value: Model[Instrument, HPLC, Waters Acquity UPLC I-Class PDA]
+        Default Calculation: Automatically set to an instrument model that is available for the best MassSpectrometerInstrument.
+        Pattern Description: An object of type or subtype Model[Instrument, HPLC] or Object[Instrument, HPLC]
+        Programmatic Pattern: ObjectP[{Model[Instrument, HPLC], Object[Instrument, HPLC]}]
+
+    MassSpectrometerInstrument
+        The device used to ionize, separate, fragment (optionally), and detect analyte species.
+        Default Value: Automatic
+        Default Calculation: Is automatically set according to MassAnalyzer: Model[Instrument, MassSpectrometer, "Xevo G2-XS QTOF"] for QTOF, Model[Instrument, MassSpectrometer, "QTRAP 6500"] for using TripleQuadrupole.
+        Pattern Description: An object of type or subtype Model[Instrument, MassSpectrometer] or Object[Instrument, MassSpectrometer]
+        Programmatic Pattern: ObjectP[{Model[Instrument, MassSpectrometer], Object[Instrument, MassSpectrometer]}] | Automatic
+
+    Detector
+        The type of measurement to employ. Currently, we offer PhotoDiodeArray (measures the absorbance of a range of wavelengths) and MassSpectrometry (ionizes the analytes and measures the abundance of a given mass to charge ratio).
+        Default Value: {Temperature, Pressure, PhotoDiodeArray, MassSpectrometry}
+        Pattern Description: List of one or more Temperature, Pressure, PhotoDiodeArray, or MassSpectrometry entries or Temperature, Pressure, PhotoDiodeArray, or MassSpectrometry.
+        Programmatic Pattern: (Temperature | Pressure | PhotoDiodeArray | MassSpectrometry) | {(Temperature | Pressure | PhotoDiodeArray | MassSpectrometry)..}
+
+    GuardColumn
+        The protective device placed in the flow path before the Column in order to adsorb fouling contaminants, preserving the Column lifetime.
+        Default Value: Automatic
+        Default Calculation: Automatically set from the column model's PreferredGuardColumn. If Column is Null, GuardColumn resolves to Null too.
+        Pattern Description: An object of type or subtype Model[Item, Column], Object[Item, Column], Model[Item, Cartridge, Column], or Object[Item, Cartridge, Column] or Null.
+        Programmatic Pattern: (ObjectP[{Model[Item, Column], Object[Item, Column], Model[Item, Cartridge, Column], Object[Item, Cartridge, Column]}] | Automatic) | Null
+
+    NumberOfReplicates
+        The number of times to repeat measurements on each provided sample(s). If Aliquot -> True, this also indicates the number of times each provided sample will be aliquoted.
+        Default Value: Null
+        Pattern Description: Greater than 1 in increments of 1 or Null.
+        Programmatic Pattern: GreaterP[1, 1] | Null
+
+    MaxAcceleration
+        The maximum allowed change per time in FlowRate.
+        Default Value: Automatic
+        Default Calculation: Automatically set from the Column, Instrument, and GuardColumn models. The minimum MaxAcceleration will be used.
+        Pattern Description: Greater than 0 milliliters per minute squared or Null.
+        Programmatic Pattern: (GreaterP[0*(Milliliter/(Minute*Minute))] | Automatic) | Null
+
+Chromatography
+    Column
+        The item containing the stationary phase through which the buffers and input samples flow. It adsorbs and separates the molecules within the sample based on the properties of the mobile phase, samples, column material, and ColumnTemperature.
+        Default Value: Automatic
+        Default Calculation: Automatically set to a column model ideal for the specified SeparationMode.
+        Pattern Description: An object of type or subtype Model[Item, Column] or Object[Item, Column] or Null.
+        Programmatic Pattern: (ObjectP[{Model[Item, Column], Object[Item, Column]}] | Automatic) | Null
+    
+    SecondaryColumn
+        An additional stationary phase through which the buffer and input samples flow. It is connected to flow path, downstream of the Column, and selectively adsorbs analytes.
+        Default Value: Automatic
+        Default Calculation: If ColumnSelector is specified, set from there; otherwise, set to Null.
+        Pattern Description: An object of type or subtype Model[Item, Column] or Object[Item, Column] or Null.
+        Programmatic Pattern: (ObjectP[{Model[Item, Column], Object[Item, Column]}] | Automatic) | Null
+    
+    TertiaryColumn
+        An additional stationary phase through which the buffer and input samples flow. It is connected to flow path, downstream of the SecondaryColumn, and selectively adsorbs analytes.
+        Default Value: Automatic
+        Default Calculation: If ColumnSelector is specified, set from there; otherwise, set to Null.
+        Pattern Description: An object of type or subtype Model[Item, Column] or Object[Item, Column] or Null.
+        Programmatic Pattern: (ObjectP[{Model[Item, Column], Object[Item, Column]}] | Automatic) | Null
+    
+    ColumnSelector
+        The list of all the columns loaded into the ChromatographyInstrument's column compartment or selector and referenced in GuardColumn, Column, SecondaryColumn, and TertiaryColumn options.
+        Default Value: Automatic
+        Default Calculation: Automatically set from the Column, SecondaryColumn, and TertiaryColumn options.
+        Pattern Description: {Guard Column, Column, Secondary Column, Tertiary Column} or Null.
+        Programmatic Pattern: ({ObjectP[{Model[Item, Column], Object[Item, Column]}] | (Automatic | Null), ObjectP[{Model[Item, Column], Object[Item, Column]}] | (Automatic | Null), ObjectP[{Model[Item, Column], Object[Item, Column]}] | (Automatic | Null), ObjectP[{Model[Item, Column], Object[Item, Column]}] | (Automatic | Null)} | Automatic) | Null
+    
+    ColumnTemperature
+        The temperature of the Column throughout the measurement and/or collection.
+        Default Value: Automatic
+        Default Calculation: Automatically set from the temperature within the Gradient option; otherwise, Ambient temperature is used.
+        Pattern Description: Ambient or greater than or equal to 5 degrees Celsius and less than or equal to 80 degrees Celsius.
+        Programmatic Pattern: (RangeP[5*Celsius, 80*Celsius] | Ambient) | Automatic
+        Index Matches to: experiment samples
+    
+    BufferA
+        The solvent pumped through channel A of the flow path.
+        Default Value: Automatic
+        Default Calculation: Automatically set from SeparationMode (e.g. Water buffer if ReversePhase) or the objects specified by the Gradient option.
+        Pattern Description: An object of type or subtype Object[Sample] or Model[Sample] or a prepared sample.
+        Programmatic Pattern: (ObjectP[{Object[Sample], Model[Sample]}] | _String) | Automatic
+    
+    BufferB
+        The solvent pumped through channel B of the flow path.
+        Default Value: Automatic
+        Default Calculation: Automatically set from SeparationMode (e.g. Acetonitrile buffer if ReversePhase) or the objects specified by the Gradient option.
+        Pattern Description: An object of type or subtype Object[Sample] or Model[Sample] or a prepared sample.
+        Programmatic Pattern: (ObjectP[{Object[Sample], Model[Sample]}] | _String) | Automatic
+        
+    BufferC
+        The solvent pumped through channel C of the flow path.
+        Default Value: Automatic
+        Default Calculation: Automatically set from SeparationMode or the objects specified by the Gradient option.
+        Pattern Description: An object of type or subtype Object[Sample] or Model[Sample] or a prepared sample.
+        Programmatic Pattern: (ObjectP[{Object[Sample], Model[Sample]}] | _String) | Automatic
+    
+    BufferD
+        The solvent pumped through channel D of the flow path.
+        Default Value: Automatic
+        Default Calculation: Automatically set from SeparationMode or the objects specified by the Gradient option.
+        Pattern Description: An object of type or subtype Object[Sample] or Model[Sample] or a prepared sample or Null.
+        Programmatic Pattern: ((ObjectP[{Object[Sample], Model[Sample]}] | _String) | Automatic) | Null
+
+
+Sample Parameters
+    InjectionTable
+        The order of sample, Standard, and Blank sample loading into the instrument during measurement and/or collection. This also includes the priming and flushing of the column.
+        Default Value: Automatic
+        Default Calculation: Determined to the order of input samples articulated. Standard and Blank samples are inserted based on the determination of StandardFrequency and BlankFrequency. For example, StandardFrequency -> FirstAndLast and BlankFrequency -> Null result in Standard samples injected first, then samples, and then the Standard sample set again.
+        Pattern Description: List of one or more {Type, Sample, InjectionVolume, Gradient, Mass Spectrometry} or {Type, Sample, InjectionVolume, Gradient, Mass Spectrometry} entries.
+        Programmatic Pattern: {({Standard | Sample | Blank, (ObjectP[{Model[Sample], Object[Sample]}] | _String) | Automatic, RangeP[0*Microliter, 50*Microliter, 1*Microliter] | Automatic, ObjectP[Object[Method, Gradient]] | (Automatic | New), ObjectP[Object[Method, MassAcquisition]] | (Automatic | New)} | {ColumnPrime | ColumnFlush, Automatic | Null, Automatic | Null, ObjectP[Object[Method, Gradient]] | (Automatic | New), ObjectP[Object[Method, MassAcquisition]] | (Automatic | New)})..} | Automatic
+        
+    SampleTemperature
+        The temperature at which the samples, Standard, and Blank are kept in the instrument.
+        Default Value: Ambient
+        Pattern Description: Ambient or greater than or equal to 5 degrees Celsius and less than or equal to 40 degrees Celsius.
+        Programmatic Pattern: RangeP[5*Celsius, 40*Celsius] | Ambient
+        
+    InjectionVolume
+        The physical quantity of sample loaded into the flow path for measurement.
+        Default Value: Automatic
+        Default Calculation: Set to 5 uL.
+        Pattern Description: Greater than or equal to 0 microliters and less than or equal to 50 microliters.
+        Programmatic Pattern: RangeP[0*Microliter, 50*Microliter] | Automatic
+        Index Matches to: experiment samples
+        
+    NeedleWashSolution
+        The solvent used to wash the injection needle before each sample measurement.
+        Default Value: Automatic
+        Default Calculation: Set to 20% Methanol solution.
+        Pattern Description: An object of type or subtype Object[Sample] or Model[Sample] or a prepared sample.
+        Programmatic Pattern: (ObjectP[{Object[Sample], Model[Sample]}] | _String) | Automatic
+
+
+Gradient
+    GradientA
+        The composition of BufferA within the flow, defined for specific time points. The composition is linearly interpolated for the intervening periods between the defined time points. For example for GradientA->{{0 Minute, 10 Percent},{30 Minute, 90 Percent}}, the percentage of BufferA in the flow will rise such that at 15 minutes, the composition should be 50*Percent.
+        Default Value: Automatic
+        Default Calculation: Automatically set from Gradient option or implicitly resolved from GradientB, GradientC, and GradientD options.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or list of one or more {Time, Buffer A Composition} entries.
+        Programmatic Pattern: (RangeP[0*Percent, 100*Percent] | {{GreaterEqualP[0*Minute], RangeP[0*Percent, 100*Percent]}..}) | Automatic
+        Index Matches to: experiment samples
+    
+    GradientB
+        The composition of BufferB within the flow, defined for specific time points. The composition is linearly interpolated for the intervening periods between the defined time points. For example for GradientB->{{0 Minute, 10 Percent},{30 Minute, 90 Percent}}, the percentage of BufferB in the flow will rise such that at 15 minutes, the composition should be 50*Percent.
+        Default Value: Automatic
+        Default Calculation: Automatically set from Gradient option or implicitly resolved from GradientA, GradientC, and GradientD options. If no other gradient options are specified, a Buffer B gradient of 10% to 100% over 45 minutes is used.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or list of one or more {Time, Buffer B Composition} entries.
+        Programmatic Pattern: (RangeP[0*Percent, 100*Percent] | {{GreaterEqualP[0*Minute], RangeP[0*Percent, 100*Percent]}..}) | Automatic
+        Index Matches to: experiment samples
+    
+    GradientC
+        The composition of BufferC within the flow, defined for specific time points. The composition is linearly interpolated for the intervening periods between the defined time points. For example for GradientC->{{0 Minute, 10 Percent},{30 Minute, 90 Percent}}, the percentage of BufferC in the flow will rise such that at 15 minutes, the composition should be 50*Percent.
+        Default Value: Automatic
+        Default Calculation: Automatically set from Gradient option or implicitly resolved from GradientA, GradientB, and GradientD options.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or list of one or more {Time, Buffer C Composition} entries.
+        Programmatic Pattern: (RangeP[0*Percent, 100*Percent] | {{GreaterEqualP[0*Minute], RangeP[0*Percent, 100*Percent]}..}) | Automatic
+        Index Matches to: experiment samples
+    
+    GradientD
+        The composition of BufferD within the flow, defined for specific time points. The composition is linearly interpolated for the intervening periods between the defined time points. For example for GradientD->{{0 Minute, 10 Percent},{30 Minute, 90 Percent}}, the percentage of BufferD in the flow will rise such that at 15 minutes, the composition should be 50*Percent.
+        Default Value: Automatic
+        Default Calculation: If the specified instrument supports Buffer D, this option automatically resolves from Gradient option or implicitly resolved from GradientA, GradientB, and GradientC options.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or list of one or more {Time, Buffer D Composition} entries or Null.
+        Programmatic Pattern: ((RangeP[0*Percent, 100*Percent] | {{GreaterEqualP[0*Minute], RangeP[0*Percent, 100*Percent]}..}) | Automatic) | Null
+        Index Matches to: experiment samples
+    
+    FlowRate
+        The speed of the fluid through the pump. This speed is linearly interpolated such that consecutive entries of {Time, Flow Rate} will define the intervening fluid speed. For example, {{0 Minute, 0.3 Milliliter/Minute},{30 Minute, 0.5 Milliliter/Minute}} means the flow rate will be 0.4 Milliliter/Minute at 15 minutes into the run.
+        Default Value: Automatic
+        Default Calculation: Automatically set from Type and Scale or inherited from the method given in the Gradient option.
+        Pattern Description: Greater than or equal to 0 milliliters per minute and less than or equal to 2 milliliters per minute or list of one or more {Time, Flow Rate} entries.
+        Programmatic Pattern: (RangeP[(0*Milliliter)/Minute, (2*Milliliter)/Minute] | {{GreaterEqualP[0*Minute], RangeP[(0*Milliliter)/Minute, (2*Milliliter)/Minute]}..}) | Automatic
+        Index Matches to: experiment samples
+    
+    GradientStart
+        A shorthand option to specify the starting BufferB composition in the fluid flow. This option must be specified with GradientEnd and GradientDuration.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: experiment samples
+    
+    GradientEnd
+        A shorthand option to specify the final BufferB composition in the fluid flow. This option must be specified with GradientStart and GradientDuration.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: experiment samples
+    
+    GradientDuration
+        A shorthand option to specify the duration of a gradient.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: experiment samples
+    
+    EquilibrationTime
+        A shorthand option to specify the duration of equilibration at the starting buffer composition at the start of a gradient.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: experiment samples
+    
+    FlushTime
+        A shorthand option to specify the duration of Buffer C flush at the end of a gradient.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: experiment samples
+    
+    Gradient
+        The buffer composition over time in the fluid flow. Specific parameters of an object can be overridden by specific options.
+        Default Value: Automatic
+        Default Calculation: Automatically set to best meet all the Gradient options (e.g. GradientA, GradientB, GradientC, GradientD, FlowRate, GradientStart, GradientEnd, GradientDuration, EquilibrateTime, FlushTime).
+        Pattern Description: An object of type or subtype Object[Method, Gradient] or list of one or more {Time, Buffer A Composition, Buffer B Composition, Buffer C Composition, Buffer D Composition, Flow Rate} entries.
+        Programmatic Pattern: (ObjectP[Object[Method, Gradient]] | {{GreaterEqualP[0*Minute], RangeP[0*Percent, 100*Percent], RangeP[0*Percent, 100*Percent], RangeP[0*Percent, 100*Percent], RangeP[0*Percent, 100*Percent], RangeP[(0*Milliliter)/Minute, (2*Milliliter)/Minute]}..}) | Automatic
+        Index Matches to: experiment samples
+    
+    StandardGradientStart
+        A shorthand option to specify the starting BufferB composition in the fluid flow. This option must be specified with StandardGradientEnd and StandardGradientDuration.
+        Default Value: Null
+        Default Calculation: Automatically set to Null, if not specified.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: Standard
+    
+    StandardGradientEnd
+        A shorthand option to specify the final BufferB composition in the fluid flow. This option must be specified with StanadrdGradientStart and StamdardGradientDuration.
+        Default Value: Null
+        Default Calculation: Automatically set to Null, if not specified.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: Standard
+    
+    StandardEquilibrationTime
+        A shorthand option to specify the duration of constant buffer composition before the gradient changes.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: Standard
+    
+    StandardFlushTime
+        A shorthand option to specify the duration of constant buffer composition after the gradient changes and before the next sample injection.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: Standard
+    
+    BlankGradientStart
+        A shorthand option to specify the starting BufferB composition in the fluid flow. This option must be specified with BlankGradientEnd and BlankGradientDuration.
+        Default Value: Null
+        Default Calculation: Automatically set to Null, if not specified.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: Blank
+    
+    BlankGradientEnd
+        A shorthand option to specify the final BufferB composition in the fluid flow. This option must be specified with BlankGradientStart and BlankGradientDuration.
+        Default Value: Null
+        Default Calculation: Automatically set to Null, if not specified.
+        Pattern Description: Greater than or equal to 0 percent and less than or equal to 100 percent or Null.
+        Programmatic Pattern: RangeP[0*Percent, 100*Percent] | Null
+        Index Matches to: Blank
+    
+    BlankEquilibrationTime
+        A shorthand option to specify the duration of constant buffer composition before the gradient changes.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: Blank
+    
+    BlankFlushTime
+        A shorthand option to specify the duration of constant buffer composition after the gradient changes and before the next sample injection.
+        Default Value: Null
+        Pattern Description: Greater than or equal to 0 minutes or Null.
+        Programmatic Pattern: GreaterEqualP[0*Minute] | Null
+        Index Matches to: Blank
+
+
